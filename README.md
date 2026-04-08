@@ -65,9 +65,47 @@ sources:
 docs:
   - input: ./docs/template.md      # Fichier template
     output: ./docs/generated.md    # Fichier généré
+    include_filename: true         # Optionnel, false par défaut
 ```
 
 Le scan des sources est **récursif** : tous les sous-dossiers sont parcourus automatiquement.
+
+#### `include_filename`
+
+Quand `include_filename: true` est activé sur une entrée `docs`, le nom du fichier source est affiché en gras juste au-dessus de chaque bloc de code généré :
+
+````markdown
+**`led.cpp`**
+```cpp
+void initLed() { ... }
+```
+````
+
+---
+
+### Override de langage par bloc (`:lang`)
+
+Par défaut, le langage d'un bloc est déterminé par l'extension du fichier source (via `languages` dans le config). Pour les fichiers mixtes comme `.vue`, `.svelte` ou les templates, tu peux forcer le langage directement dans la balise `#BEGIN` :
+
+```html
+<!-- #VUE_TEMPLATE#BEGIN:html -->
+<div>...</div>
+<!-- #VUE_TEMPLATE#END -->
+```
+
+```js
+// #VUE_SCRIPT#BEGIN:js
+export default { ... }
+// #VUE_SCRIPT#END
+```
+
+```css
+/* #VUE_STYLE#BEGIN:css */
+.container { ... }
+/* #VUE_STYLE#END */
+```
+
+Le `:lang` est **optionnel** — sans lui, le comportement est inchangé. Il ne sert que pour les blocs où l'extension du fichier ne suffit pas.
 
 ### 4. Lancer le script
 
