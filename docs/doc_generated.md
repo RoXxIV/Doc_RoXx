@@ -37,6 +37,7 @@ La fonction `setup()` initialise tout le système :
 - initialisation des modules LED et bouton
 - création des deux tasks
 
+**`main.cpp`**
 ```cpp
 void setup()
 {
@@ -68,6 +69,7 @@ void setup()
 La fonction `loop()` ne contient pas de logique métier.  
 Le vrai travail est délégué aux tasks FreeRTOS.
 
+**`main.cpp`**
 ```cpp
 void loop()
 {
@@ -81,6 +83,7 @@ void loop()
 
 Le module LED prépare la broche en sortie et force un état initial bas.
 
+**`led.cpp`**
 ```cpp
 void initLed()
 {
@@ -99,6 +102,7 @@ Cela évite de mélanger la configuration GPIO avec la logique de scheduling Fre
 La task LED n’utilise pas directement la variable globale `g_blinkDelayMs`.  
 Elle passe par une fonction intermédiaire qui lit la valeur sous protection du mutex.
 
+**`led.cpp`**
 ```cpp
 uint32_t getBlinkDelay()
 {
@@ -133,6 +137,7 @@ Son comportement :
 - afficher une trace série
 - attendre le délai demandé
 
+**`led.cpp`**
 ```cpp
 void ledTask(void *parameter)
 {
@@ -164,6 +169,7 @@ Dans un vrai projet embarqué, cette task pourrait être remplacée par :
 
 Le bouton est configuré en `INPUT_PULLUP`.
 
+**`button.cpp`**
 ```cpp
 void initButton()
 {
@@ -184,6 +190,7 @@ Ce choix est fréquent en embarqué car il simplifie le câblage.
 
 Quand un appui est détecté, la task bouton appelle une fonction dédiée qui modifie `g_blinkDelayMs`.
 
+**`button.cpp`**
 ```cpp
 void updateBlinkDelay()
 {
@@ -222,6 +229,7 @@ La task bouton lit régulièrement l’entrée numérique et détecte un front d
 - état précédent = `HIGH`
 - état courant = `LOW`
 
+**`button.cpp`**
 ```cpp
 void buttonTask(void *parameter)
 {
@@ -312,6 +320,7 @@ Exemple attendu pour un bloc absent :
 
 ## API du module LED
 
+**`led.h`**
 ```cpp
 void initLed();
 uint32_t getBlinkDelay();
@@ -320,6 +329,7 @@ void ledTask(void *parameter);
 
 ## API du module bouton
 
+**`button.h`**
 ```cpp
 void initButton();
 void updateBlinkDelay();

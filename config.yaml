@@ -31,3 +31,4 @@ sources:
 docs:
   - input: ./docs/doc.md
     output: ./docs/doc_generated.md
+    include_filename: true

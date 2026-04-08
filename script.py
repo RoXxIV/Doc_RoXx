@@ -131,7 +131,7 @@ def scan_all_blocks(source_files, lang_map):
     return all_blocks
 
 
-def replace_includes_in_markdown(md_content, blocks):
+def replace_includes_in_markdown(md_content, blocks, include_filename=False):
     def replacer(match):
         indent = match.group(1)
         block_id = match.group(2)
@@ -145,15 +145,21 @@ def replace_includes_in_markdown(md_content, blocks):
 
         fenced_block = f"```{lang}\n{code}\n```" if lang else f"```\n{code}\n```"
 
-        return "\n".join(
+        lines = "\n".join(
             f"{indent}{line}" if line else ""
             for line in fenced_block.splitlines()
         )
 
+        if include_filename:
+            filename = os.path.basename(block["file"])
+            lines = f"{indent}**`{filename}`**\n{lines}"
+
+        return lines
+
     return INCLUDE_RE.sub(replacer, md_content)
 
 
-def process_markdown_file(input_path, output_path, blocks):
+def process_markdown_file(input_path, output_path, blocks, include_filename=False):
     if not os.path.exists(input_path):
         print(f"[WARN] Fichier Markdown introuvable : {input_path}")
         return
@@ -161,7 +167,7 @@ def process_markdown_file(input_path, output_path, blocks):
     with open(input_path, "r", encoding="utf-8") as f:
         original_content = f.read()
 
-    new_content = replace_includes_in_markdown(original_content, blocks)
+    new_content = replace_includes_in_markdown(original_content, blocks, include_filename)
 
     output_dir = os.path.dirname(output_path)
     if output_dir:
@@ -188,7 +194,8 @@ def main():
     print(f"[INFO] {len(blocks)} bloc(s) trouvé(s)")
 
     for entry in doc_files:
-        process_markdown_file(entry["input"], entry["output"], blocks)
+        include_filename = entry.get("include_filename", False)
+        process_markdown_file(entry["input"], entry["output"], blocks, include_filename)
 
 
 if __name__ == "__main__":
