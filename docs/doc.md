@@ -211,3 +211,25 @@ Exemple attendu pour un bloc absent :
 ## API du module bouton
 
 !INCLUDE BUTTON_DECLARATIONS
+
+---
+
+## Dashboard web (Vue.js)
+
+Le projet expose également une interface web embarquée sur l'ESP32 permettant de visualiser l'état de la LED et de changer le délai de clignotement à distance.
+
+### Template HTML
+
+Structure du composant : un indicateur LED, l'affichage du délai courant et deux boutons de contrôle.
+
+!INCLUDE VUE_TEMPLATE
+
+### Script
+
+Le composant interroge l'ESP32 via `/api/status` toutes les secondes et envoie une requête POST sur `/api/button` pour simuler un appui.
+
+!INCLUDE VUE_SCRIPT
+
+### Style
+
+!INCLUDE VUE_STYLE

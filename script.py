@@ -10,7 +10,7 @@ except ImportError:
     sys.exit(1)
 
 
-BLOCK_START_RE = re.compile(r"#([A-Za-z0-9_.-]+)#BEGIN")
+BLOCK_START_RE = re.compile(r"#([A-Za-z0-9_.-]+)#BEGIN(?::([A-Za-z0-9_+.-]+))?")
 INCLUDE_RE = re.compile(r"^([ \t]*)!INCLUDE\s+([A-Za-z0-9_.-]+)[ \t]*$", re.MULTILINE)
 
 
@@ -78,6 +78,7 @@ def extract_blocks_from_file(file_path, lang):
             continue
 
         block_id = start_match.group(1)
+        inline_lang = start_match.group(2)
         end_token = f"#{block_id}#END"
 
         code_lines = []
@@ -101,7 +102,7 @@ def extract_blocks_from_file(file_path, lang):
         if block_id not in blocks:
             blocks[block_id] = {
                 "content": code_content,
-                "lang": lang,
+                "lang": inline_lang if inline_lang else lang,
                 "file": file_path,
             }
 

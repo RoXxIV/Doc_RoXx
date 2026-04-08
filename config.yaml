@@ -24,6 +24,7 @@ languages:
   .css: css
   .py: python
   .json: json
+  .vue: vue
 
 sources:
   - ./example
