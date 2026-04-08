@@ -1,0 +1,33 @@
+# Extensions supportées -> langage Markdown associé :
+# .cpp  -> cpp
+# .c    -> c
+# .h    -> cpp
+# .hpp  -> cpp
+# .ino  -> cpp
+# .js   -> js
+# .ts   -> ts
+# .html -> html
+# .css  -> css
+# .py   -> python
+# .json -> json
+# .md   -> md
+
+languages:
+  .cpp: cpp
+  .c: c
+  .h: cpp
+  .hpp: cpp
+  .ino: cpp
+  .js: js
+  .ts: ts
+  .html: html
+  .css: css
+  .py: python
+  .json: json
+
+sources:
+  - ./example
+
+docs:
+  - input: ./docs/doc.md
+    output: ./docs/doc_generated.md
