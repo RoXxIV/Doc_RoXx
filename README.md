@@ -156,11 +156,13 @@ python doc.py        # régénère tous les docs
 | `--file TaskDashboard.vue` | Ne régénère que les docs qui utilisent des blocs de ce fichier source |
 | `--block TASK_ADD` | Ne régénère que les docs qui référencent cette ancre |
 | `--strict` | Bloque la génération si des blocs en doublon sont détectés (utile en CI) |
+| `--list` | Liste toutes les ancres disponibles avec leur fichier source et leur langage |
 
 ```bash
 python doc.py --file TaskDashboard.vue   # cible un fichier source
 python doc.py --block TASK_ADD           # cible une ancre précise
 python doc.py --strict                   # échoue sur doublon
+python doc.py --list                     # liste les ancres disponibles
 ```
 
 ---

@@ -225,6 +225,10 @@ def main():
         "--strict", action="store_true",
         help="Arrête l'exécution si des blocs en doublon sont détectés"
     )
+    parser.add_argument(
+        "--list", action="store_true",
+        help="Liste toutes les ancres disponibles avec leur fichier source"
+    )
     args = parser.parse_args()
 
     try:
@@ -236,6 +240,21 @@ def main():
     allowed_extensions = tuple(lang_map.keys())
     source_files = collect_source_files(source_dirs, allowed_extensions)
     blocks = scan_all_blocks(source_files, lang_map, strict=args.strict)
+
+    if args.list:
+        if not blocks:
+            print("(aucun bloc trouvé)")
+            sys.exit(0)
+        col = max(len(b) for b in blocks) + 2
+        current_file = None
+        for block_id, data in sorted(blocks.items(), key=lambda x: x[1]["file"]):
+            filename = os.path.basename(data["file"])
+            if filename != current_file:
+                print(f"\n{filename}")
+                current_file = filename
+            print(f"  {block_id:<{col}} {data['lang'] or '—'}")
+        print()
+        sys.exit(0)
 
     print(f"[INFO] {len(source_files)} fichier(s) source analysé(s)")
     print(f"[INFO] {len(blocks)} bloc(s) trouvé(s)")

@@ -24,7 +24,7 @@ Dans les deux cas, le message d'erreur doit indiquer les deux fichiers concerné
 
 ---
 
-## 4. Lister les ancres disponibles
+## ~~4. Lister les ancres disponibles~~ ✓
 
 ```bash
 python doc.py --list
