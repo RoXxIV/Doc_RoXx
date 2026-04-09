@@ -12,7 +12,10 @@ except ImportError:
 
 BLOCK_START_RE = re.compile(r"#([A-Za-z0-9_.-]+)#BEGIN(?::([A-Za-z0-9_+.-]+))?")
 BLOCK_END_RE = re.compile(r"#([A-Za-z0-9_.-]+)#END")
-INCLUDE_RE = re.compile(r"^([ \t]*)!INCLUDE\s+([A-Za-z0-9_.-]+)[ \t]*$", re.MULTILINE)
+INCLUDE_RE = re.compile(
+    r"^([ \t]*)!INCLUDE\s+([A-Za-z0-9_.-]+)((?:\s+[A-Za-z0-9_.-]+:[^\s]+)*)[ \t]*$",
+    re.MULTILINE,
+)
 
 
 def load_config(config_path="config.yaml"):
@@ -121,17 +124,31 @@ def scan_all_blocks(source_files, lang_map):
     return all_blocks
 
 
+def parse_include_params(params_str):
+    params = {}
+    for token in params_str.split():
+        if ":" in token:
+            key, value = token.split(":", 1)
+            params[key] = value
+    return params
+
+
 def replace_includes_in_markdown(md_content, blocks, include_filename=False):
     def replacer(match):
         indent = match.group(1)
         block_id = match.group(2)
+        params = parse_include_params(match.group(3))
 
         if block_id not in blocks:
             return f"{indent}<!-- Missing block: {block_id} -->"
 
         block = blocks[block_id]
-        lang = block["lang"]
+        lang = params.get("lang", block["lang"])
         code = block["content"]
+
+        show_filename = include_filename
+        if "filename" in params:
+            show_filename = params["filename"].lower() == "true"
 
         fenced_block = f"```{lang}\n{code}\n```" if lang else f"```\n{code}\n```"
 
@@ -140,7 +157,7 @@ def replace_includes_in_markdown(md_content, blocks, include_filename=False):
             for line in fenced_block.splitlines()
         )
 
-        if include_filename:
+        if show_filename:
             filename = os.path.basename(block["file"])
             lines = f"{indent}**`{filename}`**\n{lines}"
 

@@ -470,3 +470,65 @@ Seule la ligne `pinMode` doit apparaître.
 ```cpp
 pinMode(BUTTON_PIN, INPUT_PULLUP);
 ```
+
+---
+
+## Paramètres `!INCLUDE` — test
+
+### `filename:false` — masquer le nom de fichier
+
+Le yaml a `include_filename: true`, donc le nom s'affiche partout par défaut.  
+Ici on le masque explicitement pour ce bloc.
+
+```cpp
+void initLed()
+{
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, LOW);
+}
+```
+
+### `lang:` — override du langage
+
+Le même bloc `LED_INIT`, mais rendu en `c` au lieu de `cpp`.
+
+```c
+void initLed()
+{
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, LOW);
+}
+```
+
+### Cumul des deux paramètres
+
+`MAIN_SETUP` affiché avec `filename:true` (redondant ici car global = true, mais valide) et `lang:` forcé en `c`.
+
+**`main.cpp`**
+```c
+void setup()
+{
+    Serial.begin(115200);
+    delay(500);
+    g_sharedMutex = xSemaphoreCreateMutex();
+    initLed();
+    initButton();
+    xTaskCreatePinnedToCore(
+        ledTask,
+        "LED_TASK",
+        2048,
+        nullptr,
+        1,
+        nullptr,
+        1);
+    xTaskCreatePinnedToCore(
+        buttonTask,
+        "BUTTON_TASK",
+        2048,
+        nullptr,
+        1,
+        nullptr,
+        1);
+    Serial.println("System started");
+}
+```

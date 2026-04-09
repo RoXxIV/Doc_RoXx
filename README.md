@@ -50,6 +50,19 @@ Voici l'implémentation de ma fonction :
 Ce bloc fait telle chose...
 ```
 
+Des paramètres optionnels peuvent être ajoutés, dans n'importe quel ordre :
+
+```markdown
+!INCLUDE MON_BLOC lang:html
+!INCLUDE MON_BLOC filename:true
+!INCLUDE MON_BLOC lang:js filename:false
+```
+
+| Paramètre | Valeurs | Description |
+|-----------|---------|-------------|
+| `lang:xxx` | ex : `cpp`, `js`, `html` | Override le langage du fenced block pour cet include uniquement |
+| `filename:true/false` | `true` ou `false` | Affiche ou masque le nom du fichier source, indépendamment du `include_filename` global du yaml |
+
 ### 3. Configurer `config.yaml`
 
 ```yaml
@@ -158,4 +171,4 @@ Tu peux ajouter ou modifier les mappings directement dans `config.yaml`.
 
 ## Exemple
 
-Le dossier `example/` contient un projet C++ de démonstration (ESP32 / FreeRTOS) et le dossier `docs/` contient un template (`doc.md`) qui l'utilise. Lance `python script.py` pour voir le résultat dans `docs/doc_generated.md`.
+Le dossier `example/` contient un projet C++ de démonstration (ESP32 / FreeRTOS) et le dossier `docs/` contient un template (`doc.md`) qui l'utilise. Lance `python doc.py` pour voir le résultat dans `docs/doc_generated.md`.

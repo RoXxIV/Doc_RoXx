@@ -254,3 +254,26 @@ Les lignes d'annotation `BUTTON_BODY` ne doivent pas apparaître dans le rendu.
 Seule la ligne `pinMode` doit apparaître.
 
 !INCLUDE BUTTON_BODY
+
+---
+
+## Paramètres `!INCLUDE` — test
+
+### `filename:false` — masquer le nom de fichier
+
+Le yaml a `include_filename: true`, donc le nom s'affiche partout par défaut.  
+Ici on le masque explicitement pour ce bloc.
+
+!INCLUDE LED_INIT filename:false
+
+### `lang:` — override du langage
+
+Le même bloc `LED_INIT`, mais rendu en `c` au lieu de `cpp`.
+
+!INCLUDE LED_INIT lang:c filename:false
+
+### Cumul des deux paramètres
+
+`MAIN_SETUP` affiché avec `filename:true` (redondant ici car global = true, mais valide) et `lang:` forcé en `c`.
+
+!INCLUDE MAIN_SETUP lang:c filename:true
