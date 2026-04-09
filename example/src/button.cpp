@@ -8,7 +8,9 @@ static const uint8_t BUTTON_PIN = 18;
 // #BUTTON_INIT#BEGIN
 void initButton()
 {
+    // #BUTTON_BODY#BEGIN
     pinMode(BUTTON_PIN, INPUT_PULLUP);
+    // #BUTTON_BODY#END
 }
 // #BUTTON_INIT#END
 

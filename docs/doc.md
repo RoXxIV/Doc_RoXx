@@ -233,3 +233,24 @@ Le composant interroge l'ESP32 via `/api/status` toutes les secondes et envoie u
 ### Style
 
 !INCLUDE VUE_STYLE
+
+---
+
+## Blocs imbriqués — test
+
+Cette section vérifie le support des blocs imbriqués.
+
+`BUTTON_INIT` est le bloc parent : il contient la fonction complète.  
+`BUTTON_BODY` est le bloc enfant : il contient uniquement la ligne `pinMode`.
+
+### Bloc parent (BUTTON_INIT)
+
+Les lignes d'annotation `BUTTON_BODY` ne doivent pas apparaître dans le rendu.
+
+!INCLUDE BUTTON_INIT
+
+### Bloc enfant (BUTTON_BODY)
+
+Seule la ligne `pinMode` doit apparaître.
+
+!INCLUDE BUTTON_BODY

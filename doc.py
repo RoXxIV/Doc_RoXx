@@ -11,6 +11,7 @@ except ImportError:
 
 
 BLOCK_START_RE = re.compile(r"#([A-Za-z0-9_.-]+)#BEGIN(?::([A-Za-z0-9_+.-]+))?")
+BLOCK_END_RE = re.compile(r"#([A-Za-z0-9_.-]+)#END")
 INCLUDE_RE = re.compile(r"^([ \t]*)!INCLUDE\s+([A-Za-z0-9_.-]+)[ \t]*$", re.MULTILINE)
 
 
@@ -67,46 +68,34 @@ def extract_blocks_from_file(file_path, lang):
     lines = content.splitlines(keepends=True)
 
     blocks = {}
-    i = 0
+    stack = []  # list de [block_id, inline_lang, code_lines]
 
-    while i < len(lines):
-        line = lines[i]
+    for line in lines:
         start_match = BLOCK_START_RE.search(line)
+        end_match = BLOCK_END_RE.search(line)
 
-        if not start_match:
-            i += 1
-            continue
+        if start_match:
+            block_id = start_match.group(1)
+            inline_lang = start_match.group(2)
+            stack.append([block_id, inline_lang, []])
 
-        block_id = start_match.group(1)
-        inline_lang = start_match.group(2)
-        end_token = f"#{block_id}#END"
+        elif end_match and stack and stack[-1][0] == end_match.group(1):
+            block_id, inline_lang, code_lines = stack.pop()
+            code_content = "".join(code_lines)
+            code_content = re.sub(r"\n\s*\n+", "\n", code_content).strip()
+            if block_id not in blocks:
+                blocks[block_id] = {
+                    "content": code_content,
+                    "lang": inline_lang if inline_lang else lang,
+                    "file": file_path,
+                }
 
-        code_lines = []
-        i += 1
+        else:
+            for item in stack:
+                item[2].append(line)
 
-        while i < len(lines):
-            if end_token in lines[i]:
-                break
-            code_lines.append(lines[i])
-            i += 1
-
-        if i >= len(lines):
-            print(f"[WARN] Bloc '{block_id}' sans fin trouvée dans {file_path}")
-            break
-
-        code_content = "".join(code_lines)
-
-        # Supprime les lignes vides répétées
-        code_content = re.sub(r"\n\s*\n+", "\n", code_content).strip()
-
-        if block_id not in blocks:
-            blocks[block_id] = {
-                "content": code_content,
-                "lang": inline_lang if inline_lang else lang,
-                "file": file_path,
-            }
-
-        i += 1
+    for item in stack:
+        print(f"[WARN] Bloc '{item[0]}' sans fin trouvée dans {file_path}")
 
     return blocks
 

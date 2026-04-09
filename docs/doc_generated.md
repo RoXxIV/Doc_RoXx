@@ -440,3 +440,33 @@ export default {
   margin-top: 1rem;
 }
 ```
+
+---
+
+## Blocs imbriqués — test
+
+Cette section vérifie le support des blocs imbriqués.
+
+`BUTTON_INIT` est le bloc parent : il contient la fonction complète.  
+`BUTTON_BODY` est le bloc enfant : il contient uniquement la ligne `pinMode`.
+
+### Bloc parent (BUTTON_INIT)
+
+Les lignes d'annotation `BUTTON_BODY` ne doivent pas apparaître dans le rendu.
+
+**`button.cpp`**
+```cpp
+void initButton()
+{
+    pinMode(BUTTON_PIN, INPUT_PULLUP);
+}
+```
+
+### Bloc enfant (BUTTON_BODY)
+
+Seule la ligne `pinMode` doit apparaître.
+
+**`button.cpp`**
+```cpp
+pinMode(BUTTON_PIN, INPUT_PULLUP);
+```

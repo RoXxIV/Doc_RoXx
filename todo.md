@@ -1,9 +1,9 @@
 # Todo
 
-## Blocs imbriqués
+## ~~Blocs imbriqués~~ ✓
 
 Permettre d'imbriquer des blocs les uns dans les autres.  
-Lors de l'extraction d'un bloc parent, les lignes d'annotation enfants (`#XXX#BEGIN`, `#XXX#END`) doivent être supprimées du contenu généré.
+Lors de l'extraction d'un bloc parent, les lignes d'annotation enfants (`#XXX#BEGIN`, `#XXX#END`) sont supprimées du contenu généré.
 
 ```cpp
 // #BUTTON_INIT#BEGIN
