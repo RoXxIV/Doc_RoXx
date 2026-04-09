@@ -1,3 +1,4 @@
+import argparse
 import os
 import re
 import sys
@@ -186,7 +187,27 @@ def process_markdown_file(input_path, output_path, blocks, include_filename=Fals
     print(f"[OK] Fichier généré : {output_path}")
 
 
+def get_doc_blocks(input_path):
+    """Retourne l'ensemble des block IDs référencés dans un template Markdown."""
+    if not os.path.exists(input_path):
+        return set()
+    with open(input_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    return {m.group(2) for m in INCLUDE_RE.finditer(content)}
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Doc_RoXx — générateur de documentation")
+    parser.add_argument(
+        "--file", metavar="FILENAME",
+        help="Ne régénère que les docs utilisant des blocs de ce fichier source (ex: TaskDashboard.vue)"
+    )
+    parser.add_argument(
+        "--block", metavar="BLOCK_ID",
+        help="Ne régénère que les docs contenant cette ancre (ex: TASK_ADD)"
+    )
+    args = parser.parse_args()
+
     try:
         lang_map, source_dirs, doc_files = load_config("config.yaml")
     except Exception as e:
@@ -200,7 +221,39 @@ def main():
     print(f"[INFO] {len(source_files)} fichier(s) source analysé(s)")
     print(f"[INFO] {len(blocks)} bloc(s) trouvé(s)")
 
-    for entry in doc_files:
+    filtered_docs = doc_files
+
+    if args.file:
+        target_blocks = {
+            block_id for block_id, data in blocks.items()
+            if os.path.basename(data["file"]) == args.file
+        }
+        if not target_blocks:
+            print(f"[WARN] Aucun bloc trouvé dans le fichier source : {args.file}")
+            sys.exit(0)
+        filtered_docs = [
+            entry for entry in doc_files
+            if get_doc_blocks(entry["input"]) & target_blocks
+        ]
+        if not filtered_docs:
+            print(f"[INFO] Aucun doc ne référence des blocs de : {args.file}")
+            sys.exit(0)
+        print(f"[INFO] --file {args.file} : {len(target_blocks)} bloc(s), {len(filtered_docs)} doc(s) à régénérer")
+
+    elif args.block:
+        if args.block not in blocks:
+            print(f"[WARN] Bloc introuvable : {args.block}")
+            sys.exit(1)
+        filtered_docs = [
+            entry for entry in doc_files
+            if args.block in get_doc_blocks(entry["input"])
+        ]
+        if not filtered_docs:
+            print(f"[INFO] Aucun doc ne référence le bloc : {args.block}")
+            sys.exit(0)
+        print(f"[INFO] --block {args.block} : {len(filtered_docs)} doc(s) à régénérer")
+
+    for entry in filtered_docs:
         include_filename = entry.get("include_filename", False)
         process_markdown_file(entry["input"], entry["output"], blocks, include_filename)
 

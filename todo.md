@@ -1,12 +1,12 @@
 # Todo
 
-## 1. Régénérer un fichier ou un bloc précis
+## ~~1. Régénérer un fichier ou un bloc précis~~ ✓
 
 Deux modes ciblés en CLI :
 
 ```bash
-python doc.py --doc docs/specific.md   # régénère un seul fichier de doc
-python doc.py --block TASK_ADD         # régénère uniquement les docs qui contiennent #TASK_ADD
+python doc.py --file TaskDashboard.vue   # régénère uniquement les docs qui utilisent des blocs de ce fichier source
+python doc.py --block TASK_ADD           # régénère uniquement les docs qui contiennent l'ancre #TASK_ADD
 ```
 
 ---

@@ -146,7 +146,19 @@ Le `:lang` est **optionnel** — sans lui, le comportement est inchangé. Il ne 
 
 ```bash
 pip install pyyaml   # une seule fois
-python doc.py
+python doc.py        # régénère tous les docs
+```
+
+#### Options CLI
+
+| Option | Description |
+|--------|-------------|
+| `--file TaskDashboard.vue` | Ne régénère que les docs qui utilisent des blocs de ce fichier source |
+| `--block TASK_ADD` | Ne régénère que les docs qui référencent cette ancre |
+
+```bash
+python doc.py --file TaskDashboard.vue   # cible un fichier source
+python doc.py --block TASK_ADD           # cible une ancre précise
 ```
 
 ---
