@@ -1,30 +1,65 @@
 # Todo
 
-## ~~Blocs imbriqués~~ ✓
+## 1. Régénérer un fichier ou un bloc précis
 
-Permettre d'imbriquer des blocs les uns dans les autres.  
-Lors de l'extraction d'un bloc parent, les lignes d'annotation enfants (`#XXX#BEGIN`, `#XXX#END`) sont supprimées du contenu généré.
+Deux modes ciblés en CLI :
 
-```cpp
-// #BUTTON_INIT#BEGIN
-void initButton()
-{
-    // #BUTTON_BODY#BEGIN
-    pinMode(BUTTON_PIN, INPUT_PULLUP);
-    // #BUTTON_BODY#END
-}
-// #BUTTON_INIT#END
+```bash
+python doc.py --doc docs/specific.md   # régénère un seul fichier de doc
+python doc.py --block TASK_ADD         # régénère uniquement les docs qui contiennent #TASK_ADD
 ```
 
 ---
 
-## ~~`!INCLUDE` avec paramètres~~ ✓
+## 3. Mode strict sur les doublons
 
-Paramètres optionnels sur la directive `!INCLUDE`, ordre libre :
+Deux comportements au choix via flag :
 
-```markdown
-!INCLUDE BLOCK_ID lang:html filename:true
+```bash
+python doc.py --strict   # arrête l'exécution au premier doublon, pointe le fichier et la ligne
+python doc.py            # comportement actuel : continue avec un [WARN] et garde le premier bloc
 ```
 
-- `lang:xxx` — override le langage du fenced block pour cet include
-- `filename:true/false` — affiche ou masque le nom du fichier source, indépendamment du `include_filename` global du yaml
+Dans les deux cas, le message d'erreur doit indiquer les deux fichiers concernés et le nom du bloc.
+
+---
+
+## 4. Lister les ancres disponibles
+
+```bash
+python doc.py --list
+```
+
+Affiche tous les blocs trouvés avec leur fichier source :
+
+```
+TASK_STRUCT        TaskManager.cpp
+TASK_ADD           TaskManager.cpp
+TASK_REMOVE        TaskManager.cpp
+TASK_LIST          TaskManager.cpp
+TASK_MARK_DONE     TaskManager.cpp
+TASK_FIND          TaskManager.cpp
+DASHBOARD_TEMPLATE TaskDashboard.vue
+DASHBOARD_SCRIPT   TaskDashboard.vue
+DASHBOARD_STYLE    TaskDashboard.vue
+```
+
+---
+
+## 5. CLI package
+
+Transformer le projet en package pip installable.
+
+```bash
+pip install .        # install local
+pip install -e .     # install en mode éditable (dev)
+doc-roxx             # commande disponible partout
+doc-roxx --list
+doc-roxx --strict
+doc-roxx --doc docs/specific.md
+```
+
+Restructuration nécessaire :
+- Déplacer `doc.py` dans `doc_roxx/cli.py`
+- Ajouter `doc_roxx/__init__.py`
+- Ajouter `pyproject.toml` avec entry point `doc-roxx = "doc_roxx.cli:main"`

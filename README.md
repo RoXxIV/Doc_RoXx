@@ -58,7 +58,7 @@ bool markDone(int id) {
 ```
 
 `!INCLUDE TASK_MARK_DONE` → fonction complète, sans les lignes `#TASK_FIND#...`  
-`!INCLUDE TASK_FIND` → uniquement la boucle de recherche
+`!INCLUDE TASK_FIND` → exactement ce qui est entre ses balises
 
 ### 2. Référencer les blocs dans le template Markdown
 
