@@ -1,534 +1,269 @@
-# Démo de documentation ancrée — FreeRTOS ESP32
+# Task Manager — Documentation technique
 
-Ce document sert à tester un système simple de génération de documentation à partir de blocs de code annotés dans plusieurs fichiers source.
+Ce projet implémente un gestionnaire de tâches avec un backend C++ et une interface Vue.js.
 
-Le projet repose sur trois fichiers :
-
-- `main.cpp` : point d’entrée du programme
-- `led.cpp` : gestion de la LED et de la task associée
-- `button.cpp` : gestion du bouton et de la task associée
-
-L’objectif fonctionnel est simple :
-
-- une task pilote une LED
-- une autre task surveille un bouton
-- un appui sur le bouton change la vitesse de clignotement
+- `TaskManager.cpp` : logique métier (ajout, suppression, listing, marquage)
+- `TaskDashboard.vue` : interface web (template HTML, script JS, styles CSS)
 
 ---
 
-## Vue d’ensemble
+## Modèle de données
 
-Le programme démarre sur ESP32, initialise les entrées/sorties, crée un mutex partagé, puis lance deux tasks FreeRTOS :
+Chaque tâche est représentée par une struct simple :
 
-- `ledTask`
-- `buttonTask`
-
-La variable globale `g_blinkDelayMs` contient la période de clignotement actuelle.  
-Cette valeur est protégée par `g_sharedMutex` pour éviter un accès concurrent non contrôlé entre les tasks.
-
----
-
-## Point d’entrée principal
-
-La fonction `setup()` initialise tout le système :
-
-- ouverture de la liaison série
-- création du mutex
-- initialisation des modules LED et bouton
-- création des deux tasks
-
-**`main.cpp`**
+**`TaskManager.cpp`**
 ```cpp
-void setup()
-{
-    Serial.begin(115200);
-    delay(500);
-    g_sharedMutex = xSemaphoreCreateMutex();
-    initLed();
-    initButton();
-    xTaskCreatePinnedToCore(
-        ledTask,
-        "LED_TASK",
-        2048,
-        nullptr,
-        1,
-        nullptr,
-        1);
-    xTaskCreatePinnedToCore(
-        buttonTask,
-        "BUTTON_TASK",
-        2048,
-        nullptr,
-        1,
-        nullptr,
-        1);
-    Serial.println("System started");
+struct Task {
+    int id;
+    std::string title;
+    bool done;
+};
+```
+
+Trois champs : un identifiant unique auto-incrémenté, un titre, et un état d'achèvement.
+
+---
+
+## Ajouter une tâche
+
+**`TaskManager.cpp`**
+```cpp
+void addTask(const std::string& title) {
+    tasks.push_back({ nextId++, title, false });
+    std::cout << "[+] Task added: " << title << "\n";
 }
 ```
 
-La fonction `loop()` ne contient pas de logique métier.  
-Le vrai travail est délégué aux tasks FreeRTOS.
-
-**`main.cpp`**
-```cpp
-void loop()
-{
-    vTaskDelay(pdMS_TO_TICKS(1000));
-}
-```
+L'identifiant est attribué automatiquement via `nextId`.
 
 ---
 
-## Initialisation de la LED
+## Supprimer une tâche
 
-Le module LED prépare la broche en sortie et force un état initial bas.
-
-**`led.cpp`**
+**`TaskManager.cpp`**
 ```cpp
-void initLed()
-{
-    pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, LOW);
+void removeTask(int id) {
+    tasks.erase(
+        std::remove_if(tasks.begin(), tasks.end(),
+            [id](const Task& t) { return t.id == id; }),
+        tasks.end()
+    );
+    std::cout << "[-] Task removed: " << id << "\n";
 }
 ```
 
-Cette étape isole la configuration matérielle dans une fonction dédiée.  
-Cela évite de mélanger la configuration GPIO avec la logique de scheduling FreeRTOS.
+La suppression se fait par id avec `std::remove_if`.
 
 ---
 
-## Lecture sécurisée du délai partagé
+## Lister les tâches
 
-La task LED n’utilise pas directement la variable globale `g_blinkDelayMs`.  
-Elle passe par une fonction intermédiaire qui lit la valeur sous protection du mutex.
-
-**`led.cpp`**
+**`TaskManager.cpp`**
 ```cpp
-uint32_t getBlinkDelay()
-{
-    uint32_t value = 500;
-    if (g_sharedMutex != nullptr)
-    {
-        if (xSemaphoreTake(g_sharedMutex, pdMS_TO_TICKS(50)) == pdTRUE)
-        {
-            value = g_blinkDelayMs;
-            xSemaphoreGive(g_sharedMutex);
-        }
-    }
-    return value;
-}
-```
-
-Cette approche est utile pour deux raisons :
-
-1. elle centralise l’accès à la donnée partagée
-2. elle rend le code plus lisible qu’un accès mutex dispersé partout
-
----
-
-## Task LED
-
-La task LED tourne en boucle infinie.
-
-Son comportement :
-
-- lire le délai courant
-- inverser l’état de la LED
-- afficher une trace série
-- attendre le délai demandé
-
-**`led.cpp`**
-```cpp
-void ledTask(void *parameter)
-{
-    (void)parameter;
-    bool ledState = false;
-    for (;;)
-    {
-        uint32_t delayMs = getBlinkDelay();
-        ledState = !ledState;
-        digitalWrite(LED_PIN, ledState);
-        Serial.print("[LED] Toggle, delay = ");
-        Serial.println(delayMs);
-        vTaskDelay(pdMS_TO_TICKS(delayMs));
-    }
-}
-```
-
-Ici, la LED représente un exemple simple d’action périodique.  
-Dans un vrai projet embarqué, cette task pourrait être remplacée par :
-
-- une lecture capteur
-- un envoi MQTT
-- une mise à jour d’écran
-- une surveillance d’état machine
-
----
-
-## Initialisation du bouton
-
-Le bouton est configuré en `INPUT_PULLUP`.
-
-**`button.cpp`**
-```cpp
-void initButton()
-{
-    pinMode(BUTTON_PIN, INPUT_PULLUP);
-}
-```
-
-Cela implique généralement :
-
-- état repos = `HIGH`
-- appui = `LOW`
-
-Ce choix est fréquent en embarqué car il simplifie le câblage.
-
----
-
-## Mise à jour du délai de clignotement
-
-Quand un appui est détecté, la task bouton appelle une fonction dédiée qui modifie `g_blinkDelayMs`.
-
-**`button.cpp`**
-```cpp
-void updateBlinkDelay()
-{
-    if (g_sharedMutex == nullptr)
+void listTasks() {
+    if (tasks.empty()) {
+        std::cout << "(no tasks)\n";
         return;
-    if (xSemaphoreTake(g_sharedMutex, pdMS_TO_TICKS(50)) == pdTRUE)
-    {
-        if (g_blinkDelayMs == 500)
-            g_blinkDelayMs = 200;
-        else if (g_blinkDelayMs == 200)
-            g_blinkDelayMs = 1000;
-        else
-            g_blinkDelayMs = 500;
-        Serial.print("[BUTTON] New blink delay = ");
-        Serial.println(g_blinkDelayMs);
-        xSemaphoreGive(g_sharedMutex);
+    }
+    for (const auto& task : tasks) {
+        std::cout << "[" << (task.done ? "x" : " ") << "] "
+                  << task.id << " - " << task.title << "\n";
     }
 }
 ```
 
-Le cycle retenu dans cet exemple est :
-
-- `500 ms`
-- `200 ms`
-- `1000 ms`
-- puis retour à `500 ms`
-
-La mise à jour passe elle aussi par le mutex, ce qui garde une logique cohérente entre lecture et écriture.
+Si la liste est vide, un message explicite est affiché.
 
 ---
 
-## Task bouton
+## Marquer une tâche comme terminée
 
-La task bouton lit régulièrement l’entrée numérique et détecte un front d’appui simple :
+`markDone` parcourt la liste pour trouver la tâche, puis met `done` à `true`.
 
-- état précédent = `HIGH`
-- état courant = `LOW`
+### Fonction complète
 
-**`button.cpp`**
+**`TaskManager.cpp`**
 ```cpp
-void buttonTask(void *parameter)
-{
-    (void)parameter;
-    bool lastState = HIGH;
-    for (;;)
-    {
-        bool currentState = digitalRead(BUTTON_PIN);
-        if (lastState == HIGH && currentState == LOW)
-        {
-            updateBlinkDelay();
-            vTaskDelay(pdMS_TO_TICKS(200));
+bool markDone(int id) {
+    for (auto& task : tasks) {
+        if (task.id == id) {
+            task.done = true;
+            return true;
         }
-        lastState = currentState;
-        vTaskDelay(pdMS_TO_TICKS(20));
     }
+    return false;
 }
 ```
 
-Cette task inclut aussi un petit délai anti-rebond rudimentaire avec :
+### Bloc de recherche seul (bloc imbriqué)
 
-- un `vTaskDelay(200 ms)` après détection
-- un polling périodique toutes les `20 ms`
+Le bloc `TASK_FIND` est imbriqué dans `TASK_MARK_DONE`.  
+Il peut être inclus indépendamment — les lignes d'annotation du parent n'apparaissent pas.
 
-Pour une version plus sérieuse, on pourrait ensuite améliorer :
-
-- l’anti-rebond
-- la gestion des événements
-- l’envoi d’un signal via queue ou notification FreeRTOS
-
----
-
-## Résumé architectural
-
-Le projet montre un cas très simple mais réaliste de séparation des responsabilités :
-
-### `main.cpp`
-
-- initialise le système
-- crée les tasks
-- contient les ressources partagées globales
-
-### `led.cpp`
-
-- gère la sortie LED
-- lit la configuration de clignotement
-- exécute la task d’affichage lumineux
-
-### `button.cpp`
-
-- gère l’entrée bouton
-- modifie la vitesse de clignotement
-- exécute la task de surveillance d’entrée
-
----
-
-## Blocs de code inclus dans ce document
-
-Ce document référence actuellement les ancres suivantes :
-
-- `MAIN_SETUP`
-- `MAIN_LOOP`
-- `LED_INIT`
-- `LED_GET_DELAY`
-- `LED_TASK`
-- `BUTTON_INIT`
-- `BUTTON_UPDATE_DELAY`
-- `BUTTON_TASK`
-
-Si ton script fonctionne correctement, chaque ligne `!INCLUDE ...` doit être remplacée par le bloc de code correspondant.
-
----
-
-## Ce que tu dois vérifier pendant ton test
-
-Après exécution du script :
-
-1. chaque ancre `!INCLUDE ...` doit avoir disparu
-2. chaque bloc doit apparaître dans une fenced code block Markdown
-3. le langage du bloc doit être `cpp`
-4. un bloc manquant doit être remplacé par un commentaire HTML
-
-Exemple attendu pour un bloc absent :
-
-```html
-<!-- Missing block: NOM_DU_BLOC -->
-```
-
-## API du module LED
-
-**`led.h`**
+**`TaskManager.cpp`**
 ```cpp
-void initLed();
-uint32_t getBlinkDelay();
-void ledTask(void *parameter);
-```
-
-## API du module bouton
-
-**`button.h`**
-```cpp
-void initButton();
-void updateBlinkDelay();
-void buttonTask(void *parameter);
+for (auto& task : tasks) {
+        if (task.id == id) {
+            task.done = true;
+            return true;
+        }
+    }
+    return false;
 ```
 
 ---
 
-## Dashboard web (Vue.js)
+## Interface Vue.js
 
-Le projet expose également une interface web embarquée sur l'ESP32 permettant de visualiser l'état de la LED et de changer le délai de clignotement à distance.
+Le composant `TaskDashboard.vue` communique avec le backend via des appels REST.
 
-### Template HTML
+### Template
 
-Structure du composant : un indicateur LED, l'affichage du délai courant et deux boutons de contrôle.
+Les blocs d'un fichier `.vue` utilisent `lang:` inline dans l'annotation `#BEGIN`  
+pour que chaque section soit rendue avec le bon langage.
 
-**`LedDashboard.vue`**
+**`TaskDashboard.vue`**
 ```html
-<div class="dashboard">
-    <h2>ESP32 LED Dashboard</h2>
-    <div class="status">
-      <span class="led-indicator" :class="{ active: ledOn }"></span>
-      <span>Blink delay : <strong>{{ blinkDelay }} ms</strong></span>
+<div class="task-manager">
+    <h2>Task Manager</h2>
+    <div class="add-task">
+      <input
+        v-model="newTitle"
+        placeholder="Nouvelle tâche..."
+        @keyup.enter="addTask"
+      />
+      <button @click="addTask">Ajouter</button>
     </div>
-    <div class="controls">
-      <button @click="changeDelay">Changer le délai</button>
-      <button @click="fetchStatus">Rafraîchir</button>
-    </div>
-    <p class="hint">
-      Cycle : 500 ms → 200 ms → 1000 ms → 500 ms
-    </p>
+    <ul class="task-list">
+      <li
+        v-for="task in tasks"
+        :key="task.id"
+        :class="{ done: task.done }"
+      >
+        <input type="checkbox" :checked="task.done" @change="toggleDone(task.id)" />
+        <span>{{ task.title }}</span>
+        <button class="remove" @click="removeTask(task.id)">✕</button>
+      </li>
+    </ul>
+    <p class="summary">{{ remaining }} tâche(s) restante(s)</p>
   </div>
 ```
 
 ### Script
 
-Le composant interroge l'ESP32 via `/api/status` toutes les secondes et envoie une requête POST sur `/api/button` pour simuler un appui.
-
-**`LedDashboard.vue`**
+**`TaskDashboard.vue`**
 ```js
 export default {
-  name: 'LedDashboard',
+  name: 'TaskDashboard',
   data() {
     return {
-      blinkDelay: 500,
-      ledOn: false,
-      pollInterval: null,
+      tasks: [],
+      newTitle: '',
     }
   },
-  methods: {
-    async fetchStatus() {
-      const res = await fetch('/api/status')
-      const data = await res.json()
-      this.blinkDelay = data.blinkDelay
-      this.ledOn = data.ledOn
+  computed: {
+    remaining() {
+      return this.tasks.filter(t => !t.done).length
     },
-    async changeDelay() {
-      await fetch('/api/button', { method: 'POST' })
-      await this.fetchStatus()
+  },
+  methods: {
+    async fetchTasks() {
+      const res = await fetch('/api/tasks')
+      this.tasks = await res.json()
+    },
+    async addTask() {
+      if (!this.newTitle.trim()) return
+      await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: this.newTitle }),
+      })
+      this.newTitle = ''
+      await this.fetchTasks()
+    },
+    async removeTask(id) {
+      await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+      await this.fetchTasks()
+    },
+    async toggleDone(id) {
+      await fetch(`/api/tasks/${id}/done`, { method: 'PATCH' })
+      await this.fetchTasks()
     },
   },
   mounted() {
-    this.fetchStatus()
-    this.pollInterval = setInterval(this.fetchStatus, 1000)
-  },
-  beforeUnmount() {
-    clearInterval(this.pollInterval)
+    this.fetchTasks()
   },
 }
 ```
 
-### Style
+### Styles
 
-**`LedDashboard.vue`**
+Le bloc suivant utilise `filename:false` pour masquer le nom de fichier sur ce bloc précis,  
+même si `include_filename: true` est actif globalement dans le yaml.
+
 ```css
-.dashboard {
+.task-manager {
+  max-width: 480px;
   font-family: sans-serif;
-  max-width: 320px;
   padding: 1.5rem;
   border: 1px solid #ddd;
   border-radius: 8px;
 }
-.status {
+.add-task {
   display: flex;
-  align-items: center;
+  gap: 8px;
   margin-bottom: 1rem;
 }
-.led-indicator {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #ccc;
-  margin-right: 10px;
-  transition: background 0.2s;
+.add-task input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
-.led-indicator.active {
-  background: #4caf50;
-  box-shadow: 0 0 6px #4caf50;
+.task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
-.controls button {
-  margin-right: 8px;
-  padding: 6px 14px;
+.task-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.task-list li.done span {
+  text-decoration: line-through;
+  color: #aaa;
+}
+.task-list li .remove {
+  margin-left: auto;
+  background: none;
+  border: none;
   cursor: pointer;
+  color: #ccc;
 }
-.hint {
-  font-size: 0.8rem;
-  color: #888;
+.task-list li .remove:hover {
+  color: #e55;
+}
+.summary {
   margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #888;
 }
 ```
 
 ---
 
-## Blocs imbriqués — test
+## Démonstration du paramètre `lang:` dans `!INCLUDE`
 
-Cette section vérifie le support des blocs imbriqués.
-
-`BUTTON_INIT` est le bloc parent : il contient la fonction complète.  
-`BUTTON_BODY` est le bloc enfant : il contient uniquement la ligne `pinMode`.
-
-### Bloc parent (BUTTON_INIT)
-
-Les lignes d'annotation `BUTTON_BODY` ne doivent pas apparaître dans le rendu.
-
-**`button.cpp`**
-```cpp
-void initButton()
-{
-    pinMode(BUTTON_PIN, INPUT_PULLUP);
-}
-```
-
-### Bloc enfant (BUTTON_BODY)
-
-Seule la ligne `pinMode` doit apparaître.
-
-**`button.cpp`**
-```cpp
-pinMode(BUTTON_PIN, INPUT_PULLUP);
-```
-
----
-
-## Paramètres `!INCLUDE` — test
-
-### `filename:false` — masquer le nom de fichier
-
-Le yaml a `include_filename: true`, donc le nom s'affiche partout par défaut.  
-Ici on le masque explicitement pour ce bloc.
-
-```cpp
-void initLed()
-{
-    pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, LOW);
-}
-```
-
-### `lang:` — override du langage
-
-Le même bloc `LED_INIT`, mais rendu en `c` au lieu de `cpp`.
+Le même bloc `TASK_STRUCT` affiché une seconde fois, mais avec `lang:c` forcé dans la directive.  
+Utile pour montrer qu'un même extrait peut être présenté dans un contexte de langage différent.
 
 ```c
-void initLed()
-{
-    pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, LOW);
-}
-```
-
-### Cumul des deux paramètres
-
-`MAIN_SETUP` affiché avec `filename:true` (redondant ici car global = true, mais valide) et `lang:` forcé en `c`.
-
-**`main.cpp`**
-```c
-void setup()
-{
-    Serial.begin(115200);
-    delay(500);
-    g_sharedMutex = xSemaphoreCreateMutex();
-    initLed();
-    initButton();
-    xTaskCreatePinnedToCore(
-        ledTask,
-        "LED_TASK",
-        2048,
-        nullptr,
-        1,
-        nullptr,
-        1);
-    xTaskCreatePinnedToCore(
-        buttonTask,
-        "BUTTON_TASK",
-        2048,
-        nullptr,
-        1,
-        nullptr,
-        1);
-    Serial.println("System started");
-}
+struct Task {
+    int id;
+    std::string title;
+    bool done;
+};
 ```

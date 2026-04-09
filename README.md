@@ -10,11 +10,10 @@ Le principe : tu annotes des sections de ton code avec des balises, tu places de
 
 ```
 .
-├── script.py          # Script de génération
+├── doc.py             # Script de génération
 ├── config.yaml        # Configuration (sources, langages, docs)
-├── example/           # Exemple de projet source (C++ / ESP32)
-│   ├── src/
-│   └── include/
+├── example/           # Exemple de projet source (C++ / Vue.js)
+│   └── src/
 └── docs/
     ├── doc.md         # Template Markdown (input)
     └── doc_generated.md  # Documentation générée (output)
@@ -37,6 +36,29 @@ void maFonction() {
 ```
 
 Les balises fonctionnent dans tous les langages supportés (commentaires mis de côté, seul le contenu entre les balises est extrait).
+
+#### Blocs imbriqués
+
+Tu peux imbriquer des blocs les uns dans les autres. Le bloc enfant est extrait indépendamment, et ses lignes d'annotation sont automatiquement retirées du contenu du bloc parent :
+
+```cpp
+// #TASK_MARK_DONE#BEGIN
+bool markDone(int id) {
+    // #TASK_FIND#BEGIN
+    for (auto& task : tasks) {
+        if (task.id == id) {
+            task.done = true;
+            return true;
+        }
+    }
+    return false;
+    // #TASK_FIND#END
+}
+// #TASK_MARK_DONE#END
+```
+
+`!INCLUDE TASK_MARK_DONE` → fonction complète, sans les lignes `#TASK_FIND#...`  
+`!INCLUDE TASK_FIND` → uniquement la boucle de recherche
 
 ### 2. Référencer les blocs dans le template Markdown
 
@@ -124,7 +146,7 @@ Le `:lang` est **optionnel** — sans lui, le comportement est inchangé. Il ne 
 
 ```bash
 pip install pyyaml   # une seule fois
-python script.py
+python doc.py
 ```
 
 ---
@@ -171,4 +193,6 @@ Tu peux ajouter ou modifier les mappings directement dans `config.yaml`.
 
 ## Exemple
 
-Le dossier `example/` contient un projet C++ de démonstration (ESP32 / FreeRTOS) et le dossier `docs/` contient un template (`doc.md`) qui l'utilise. Lance `python doc.py` pour voir le résultat dans `docs/doc_generated.md`.
+Le dossier `example/` contient un projet de démonstration composé d'un backend C++ (`TaskManager.cpp`) et d'une interface Vue.js (`TaskDashboard.vue`). Le dossier `docs/` contient un template (`doc.md`) qui l'utilise et illustre toutes les fonctionnalités : blocs imbriqués, `lang:` inline, paramètres `!INCLUDE`.
+
+Lance `python doc.py` pour voir le résultat dans `docs/doc_generated.md`.
