@@ -142,28 +142,39 @@ export default { ... }
 
 Le `:lang` est **optionnel** — sans lui, le comportement est inchangé. Il ne sert que pour les blocs où l'extension du fichier ne suffit pas.
 
-### 4. Lancer le script
+### 4. Installer et lancer
 
 ```bash
-pip install pyyaml   # une seule fois
-python doc.py        # régénère tous les docs
+pip install -e .   # une seule fois, depuis la racine du projet
 ```
 
-#### Options CLI
+La commande `doc-roxx` est ensuite disponible partout sur ta machine.  
+Elle cherche le `config.yaml` dans le **dossier courant**.
 
-| Option | Description |
-|--------|-------------|
+```bash
+cd mon_projet
+doc-roxx           # régénère tous les docs
+```
+
+#### Options
+
+| Commande / Option | Description |
+|-------------------|-------------|
+| `init` | Génère un `config.yaml` de base dans le dossier courant |
 | `--file TaskDashboard.vue` | Ne régénère que les docs qui utilisent des blocs de ce fichier source |
 | `--block TASK_ADD` | Ne régénère que les docs qui référencent cette ancre |
 | `--strict` | Bloque la génération si des blocs en doublon sont détectés (utile en CI) |
 | `--list` | Liste toutes les ancres disponibles avec leur fichier source et leur langage |
 
 ```bash
-python doc.py --file TaskDashboard.vue   # cible un fichier source
-python doc.py --block TASK_ADD           # cible une ancre précise
-python doc.py --strict                   # échoue sur doublon
-python doc.py --list                     # liste les ancres disponibles
+doc-roxx init                    # génère un config.yaml de base
+doc-roxx --list                  # liste les ancres disponibles
+doc-roxx --file TaskDashboard.vue
+doc-roxx --block TASK_ADD
+doc-roxx --strict
 ```
+
+`doc-roxx init` demande confirmation avant d'écraser un `config.yaml` existant.
 
 ---
 
@@ -211,4 +222,4 @@ Tu peux ajouter ou modifier les mappings directement dans `config.yaml`.
 
 Le dossier `example/` contient un projet de démonstration composé d'un backend C++ (`TaskManager.cpp`) et d'une interface Vue.js (`TaskDashboard.vue`). Le dossier `docs/` contient un template (`doc.md`) qui l'utilise et illustre toutes les fonctionnalités : blocs imbriqués, `lang:` inline, paramètres `!INCLUDE`.
 
-Lance `python doc.py` pour voir le résultat dans `docs/doc_generated.md`.
+Lance `doc-roxx` depuis ce dossier pour voir le résultat dans `docs/doc_generated.md`.

@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: doc-roxx
+Version: 0.1.0
+Summary: Générateur de documentation Markdown à partir de blocs de code annotés
+Requires-Python: >=3.8
+Requires-Dist: pyyaml

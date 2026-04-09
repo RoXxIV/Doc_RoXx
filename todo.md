@@ -46,7 +46,7 @@ DASHBOARD_STYLE    TaskDashboard.vue
 
 ---
 
-## 5. CLI package
+## ~~5. CLI package~~ ✓
 
 Transformer le projet en package pip installable.
 
