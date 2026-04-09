@@ -72,6 +72,7 @@ def extract_blocks_from_file(file_path, lang):
     lines = content.splitlines(keepends=True)
 
     blocks = {}
+    duplicates = []
     stack = []  # list de [block_id, inline_lang, code_lines]
 
     for line in lines:
@@ -93,6 +94,8 @@ def extract_blocks_from_file(file_path, lang):
                     "lang": inline_lang if inline_lang else lang,
                     "file": file_path,
                 }
+            else:
+                duplicates.append((block_id, file_path, file_path))
 
         else:
             for item in stack:
@@ -101,26 +104,38 @@ def extract_blocks_from_file(file_path, lang):
     for item in stack:
         print(f"[WARN] Bloc '{item[0]}' sans fin trouvée dans {file_path}")
 
-    return blocks
+    return blocks, duplicates
 
 
-def scan_all_blocks(source_files, lang_map):
+def scan_all_blocks(source_files, lang_map, strict=False):
     all_blocks = {}
+    duplicates = []
 
     for file_path in source_files:
         ext = os.path.splitext(file_path)[1]
         lang = lang_map.get(ext, "")
 
-        file_blocks = extract_blocks_from_file(file_path, lang)
+        file_blocks, file_duplicates = extract_blocks_from_file(file_path, lang)
+        duplicates.extend(file_duplicates)
 
         for block_id, block_data in file_blocks.items():
             if block_id not in all_blocks:
                 all_blocks[block_id] = block_data
             else:
-                print(
-                    f"[WARN] Doublon ignoré pour '{block_id}' dans {file_path} "
-                    f"(premier conservé : {all_blocks[block_id]['file']})"
-                )
+                duplicates.append((block_id, all_blocks[block_id]["file"], file_path))
+                if not strict:
+                    print(
+                        f"[WARN] Doublon ignoré pour '{block_id}' dans {file_path} "
+                        f"(premier conservé : {all_blocks[block_id]['file']})"
+                    )
+
+    if strict and duplicates:
+        print(f"[ERREUR] {len(duplicates)} doublon(s) détecté(s) — génération annulée :\n")
+        for block_id, first, second in duplicates:
+            print(f"  '{block_id}'")
+            print(f"    -> {first}")
+            print(f"    -> {second}")
+        sys.exit(1)
 
     return all_blocks
 
@@ -206,6 +221,10 @@ def main():
         "--block", metavar="BLOCK_ID",
         help="Ne régénère que les docs contenant cette ancre (ex: TASK_ADD)"
     )
+    parser.add_argument(
+        "--strict", action="store_true",
+        help="Arrête l'exécution si des blocs en doublon sont détectés"
+    )
     args = parser.parse_args()
 
     try:
@@ -216,7 +235,7 @@ def main():
 
     allowed_extensions = tuple(lang_map.keys())
     source_files = collect_source_files(source_dirs, allowed_extensions)
-    blocks = scan_all_blocks(source_files, lang_map)
+    blocks = scan_all_blocks(source_files, lang_map, strict=args.strict)
 
     print(f"[INFO] {len(source_files)} fichier(s) source analysé(s)")
     print(f"[INFO] {len(blocks)} bloc(s) trouvé(s)")

@@ -11,7 +11,7 @@ python doc.py --block TASK_ADD           # régénère uniquement les docs qui c
 
 ---
 
-## 3. Mode strict sur les doublons
+## ~~3. Mode strict sur les doublons~~ ✓
 
 Deux comportements au choix via flag :
 
